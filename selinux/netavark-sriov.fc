@@ -1,0 +1,4 @@
+/usr/local/libexec/netavark/sriov -- system_u:object_r:bin_t:s0
+/run/netavark-sriov(/.*)?	system_u:object_r:container_var_run_t:s0
+/etc/netavark(/.*)?	system_u:object_r:etc_t:s0
+/etc/netavark/sriov-reserved\.conf -- system_u:object_r:etc_t:s0

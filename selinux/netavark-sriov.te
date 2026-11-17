@@ -1,0 +1,40 @@
+module netavark_sriov 1.0;
+
+require {
+	type container_runtime_t;
+	type bin_t;
+	type sysfs_t;
+	type var_run_t;
+	type container_var_run_t;
+	type etc_t;
+	class file { getattr open read write execute execute_no_trans ioctl lock create unlink rename map entrypoint };
+	class dir { getattr open read search write add_name remove_name create rmdir };
+	class lnk_file { getattr read write create unlink };
+	class capability { net_admin net_raw sys_admin sys_module };
+}
+
+# The plugin is installed under /usr/local/libexec, which is usr_t unless this
+# module labels it bin_t. container_runtime_t can execute bin_t without a domain
+# transition. It cannot execute usr_t.
+allow container_runtime_t bin_t:file { getattr open read execute execute_no_trans ioctl map entrypoint };
+
+# Bind, unbind, driver_override, and drivers_probe are sysfs writes.
+allow container_runtime_t sysfs_t:file { getattr open read write ioctl };
+allow container_runtime_t sysfs_t:dir { getattr open read search write add_name remove_name };
+allow container_runtime_t sysfs_t:lnk_file { getattr read write create unlink };
+
+# /run is var_run_t. The state directory is created as container_var_run_t.
+allow container_runtime_t var_run_t:dir { getattr open read search write add_name remove_name create };
+type_transition container_runtime_t var_run_t:dir container_var_run_t "netavark-sriov";
+type_transition container_runtime_t container_var_run_t:dir container_var_run_t;
+type_transition container_runtime_t container_var_run_t:file container_var_run_t;
+allow container_runtime_t container_var_run_t:dir { getattr open read search write add_name remove_name create rmdir };
+allow container_runtime_t container_var_run_t:file { getattr open read write create unlink rename lock ioctl };
+
+# The reserved-device file is etc_t.
+allow container_runtime_t etc_t:dir { getattr open read search };
+allow container_runtime_t etc_t:file { getattr open read };
+
+# setns is covered by sys_admin. net_admin and net_raw cover ip and arping.
+# sys_module covers modprobe.
+allow container_runtime_t self:capability { net_admin net_raw sys_admin sys_module };
